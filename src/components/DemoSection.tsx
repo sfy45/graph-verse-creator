@@ -6,23 +6,41 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { MessageSquare, Loader2, CircleCheck } from 'lucide-react';
+import { processQuery, QueryResponse } from '@/services/queryService';
+import { toast } from '@/components/ui/sonner';
 
 const DemoSection = () => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState('');
+  const [response, setResponse] = useState<QueryResponse | null>(null);
+  const [activeTab, setActiveTab] = useState('chat');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResponse(`This is a simulated response for the query: "${query}"\n\nIn a real implementation, this would connect to your Python backend that leverages LangGraph to process this query through a multi-step reasoning workflow.\n\nThe response would be generated after passing through multiple nodes in the LangGraph workflow, potentially including:\n\n1. Query understanding\n2. Knowledge retrieval\n3. Answer synthesis\n4. Response formatting`);
+    setResponse(null);
+    
+    try {
+      const result = await processQuery(query);
+      setResponse(result);
+      
+      // If we're in chat tab, auto-switch to workflow to show the process
+      if (activeTab === 'chat') {
+        setTimeout(() => setActiveTab('workflow'), 500);
+      }
+    } catch (error) {
+      console.error("Error processing query:", error);
+      toast.error("Failed to process your query. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
   return (
@@ -42,7 +60,7 @@ const DemoSection = () => {
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="chat">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="chat">Interactive Chat</TabsTrigger>
               <TabsTrigger value="workflow">Workflow Visualization</TabsTrigger>
@@ -51,8 +69,7 @@ const DemoSection = () => {
             <TabsContent value="chat">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
                 <Card>
@@ -60,10 +77,11 @@ const DemoSection = () => {
                     <form onSubmit={handleSubmit}>
                       <div className="space-y-4">
                         <Input
-                          placeholder="Ask me anything..."
+                          placeholder="Ask me anything about AI workflows..."
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
                           className="text-lg"
+                          disabled={isLoading}
                         />
                         <Button 
                           type="submit" 
@@ -87,9 +105,12 @@ const DemoSection = () => {
 
                     {response && (
                       <div className="mt-6">
-                        <h3 className="font-medium mb-2">Response:</h3>
+                        <h3 className="font-medium mb-2 flex items-center">
+                          <CircleCheck className="mr-2 h-4 w-4 text-green-500" />
+                          Response:
+                        </h3>
                         <Textarea 
-                          value={response} 
+                          value={response.answer} 
                           readOnly 
                           className="min-h-[200px] bg-muted/50"
                         />
@@ -103,8 +124,7 @@ const DemoSection = () => {
             <TabsContent value="workflow">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="relative bg-muted/30 border rounded-lg p-6"
               >
@@ -113,26 +133,62 @@ const DemoSection = () => {
                 </div>
                 
                 <div className="relative h-[400px] flex items-center justify-center">
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                      <div className="text-center">
+                        <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
+                        <p className="mt-2">Processing your query...</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <svg width="100%" height="100%" viewBox="0 0 800 400" className="max-w-full">
                     {/* Input Node */}
                     <g>
-                      <circle cx="100" cy="200" r="40" fill="hsl(var(--primary))" opacity="0.8" />
+                      <circle 
+                        cx="100" 
+                        cy="200" 
+                        r="40" 
+                        fill="hsl(var(--primary))" 
+                        opacity={response || !query ? "0.8" : "1"} 
+                      />
                       <text x="100" y="200" textAnchor="middle" fill="white" dominantBaseline="middle">Input</text>
+                      {query && (
+                        <text x="100" y="240" textAnchor="middle" fill="white" dominantBaseline="middle" fontSize="10">
+                          {query.length > 20 ? query.substring(0, 20) + "..." : query}
+                        </text>
+                      )}
                     </g>
                     
-                    {/* Arrow */}
+                    {/* Arrows */}
                     <path d="M 150 200 L 230 200" stroke="hsl(var(--primary))" strokeWidth="2" markerEnd="url(#arrowhead)" />
                     
                     {/* Parser Node */}
                     <g>
-                      <circle cx="280" cy="120" r="40" fill="hsl(var(--secondary))" opacity="0.8" />
-                      <text x="280" y="120" textAnchor="middle" fill="white" dominantBaseline="middle">Parser</text>
+                      <circle 
+                        cx="280" 
+                        cy="120" 
+                        r="40" 
+                        fill="hsl(var(--secondary))" 
+                        opacity={response && response.steps && response.steps.length > 0 ? "1" : "0.5"} 
+                      />
+                      <text x="280" y="120" textAnchor="middle" fill="white" dominantBaseline="middle">
+                        {response && response.steps ? response.steps[0]?.step : "Parser"}
+                      </text>
                     </g>
                     
                     {/* Retrieval Node */}
                     <g>
-                      <circle cx="280" cy="280" r="40" fill="hsl(var(--secondary))" opacity="0.8" />
-                      <text x="280" y="280" textAnchor="middle" fill="white" dominantBaseline="middle">Retrieval</text>
+                      <circle 
+                        cx="280" 
+                        cy="280" 
+                        r="40" 
+                        fill="hsl(var(--secondary))" 
+                        opacity={response && response.steps && response.steps.length > 1 ? "1" : "0.5"} 
+                      />
+                      <text x="280" y="280" textAnchor="middle" fill="white" dominantBaseline="middle">
+                        {response && response.steps ? response.steps[1]?.step : "Retrieval"}
+                      </text>
                     </g>
                     
                     {/* Arrows */}
@@ -143,8 +199,16 @@ const DemoSection = () => {
                     
                     {/* Generator Node */}
                     <g>
-                      <circle cx="470" cy="200" r="40" fill="hsl(var(--accent))" opacity="0.8" />
-                      <text x="470" y="200" textAnchor="middle" fill="white" dominantBaseline="middle">Generator</text>
+                      <circle 
+                        cx="470" 
+                        cy="200" 
+                        r="40" 
+                        fill="hsl(var(--accent))" 
+                        opacity={response && response.steps && response.steps.length > 2 ? "1" : "0.5"} 
+                      />
+                      <text x="470" y="200" textAnchor="middle" fill="white" dominantBaseline="middle">
+                        {response && response.steps ? response.steps[2]?.step : "Generator"}
+                      </text>
                     </g>
                     
                     {/* Arrow */}
@@ -152,7 +216,13 @@ const DemoSection = () => {
                     
                     {/* Output Node */}
                     <g>
-                      <circle cx="630" cy="200" r="40" fill="hsl(var(--primary))" opacity="0.8" />
+                      <circle 
+                        cx="630" 
+                        cy="200" 
+                        r="40" 
+                        fill="hsl(var(--primary))" 
+                        opacity={response ? "1" : "0.5"} 
+                      />
                       <text x="630" y="200" textAnchor="middle" fill="white" dominantBaseline="middle">Output</text>
                     </g>
                     
@@ -173,11 +243,32 @@ const DemoSection = () => {
                 </div>
                 
                 <div className="text-center mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    This simplified visualization shows how a query flows through a multi-step LangGraph workflow.
-                  </p>
-                  <Button variant="outline" className="mt-4">
-                    Explore Full Workflow Builder
+                  {response ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        This visualization shows how your query flows through a multi-step LangGraph workflow.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        {response.steps && response.steps.map((step, index) => (
+                          <div key={index} className="bg-background p-3 rounded border text-left">
+                            <h4 className="font-medium text-sm">{step.step}</h4>
+                            <p className="text-xs text-muted-foreground">{step.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Submit a query to see how it flows through a multi-step LangGraph workflow.
+                    </p>
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setActiveTab('chat')}
+                  >
+                    Try Another Query
                   </Button>
                 </div>
               </motion.div>
