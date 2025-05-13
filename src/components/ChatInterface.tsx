@@ -3,11 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { processQuery } from '@/services/queryService';
-import { Loader2, Send, File } from 'lucide-react';
+import { Loader2, Send, File, AlertCircle } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ChatInterfaceProps {
   onQueryCompleted?: (result: any) => void;
@@ -21,15 +22,20 @@ const ChatInterface = ({ onQueryCompleted }: ChatInterfaceProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [apiConfigured, setApiConfigured] = useState(false);
 
   const checkApiConfigured = () => {
-    const isConfigured = localStorage.getItem('api_configured') === 'true';
-    if (!isConfigured) {
-      toast.error("API keys not configured. Please set up your API keys first.");
-      navigate('/api-config');
-      return false;
-    }
-    return true;
+    const weatherKey = localStorage.getItem('weather_api_key');
+    const googleKey = localStorage.getItem('google_api_key');
+    const langChainKey = localStorage.getItem('langchain_api_key');
+    
+    const isConfigured = 
+      (weatherKey && weatherKey.length > 5) || 
+      (googleKey && googleKey.length > 5) || 
+      (langChainKey && langChainKey.length > 5);
+      
+    setApiConfigured(isConfigured);
+    return isConfigured;
   };
 
   useEffect(() => {
@@ -37,6 +43,9 @@ const ChatInterface = ({ onQueryCompleted }: ChatInterfaceProps) => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    // Check if API keys are configured
+    checkApiConfigured();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +56,11 @@ const ChatInterface = ({ onQueryCompleted }: ChatInterfaceProps) => {
       return;
     }
     
-    if (!checkApiConfigured()) return;
+    if (!checkApiConfigured()) {
+      toast.error("API keys not configured or invalid. Please set up your API keys first.");
+      navigate('/api-config');
+      return;
+    }
 
     setIsLoading(true);
     setResponse(null);
@@ -87,6 +100,23 @@ const ChatInterface = ({ onQueryCompleted }: ChatInterfaceProps) => {
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* API Configuration Alert */}
+        {!apiConfigured && (
+          <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 m-4">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-300">
+              API keys not configured. Real-time data features will be limited.{" "}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-amber-700 dark:text-amber-400"
+                onClick={() => navigate('/api-config')}
+              >
+                Configure API keys
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Response area */}
         <AnimatePresence mode="wait">
           {response && (
