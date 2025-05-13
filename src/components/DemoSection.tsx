@@ -1,41 +1,24 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Loader2, CircleCheck } from 'lucide-react';
-import { processQuery, QueryResponse } from '@/services/queryService';
-import { toast } from '@/components/ui/sonner';
+import { Loader2, CircleCheck } from 'lucide-react';
+import { QueryResponse } from '@/services/queryService';
+import ChatInterface from './ChatInterface';
 
 const DemoSection = () => {
-  const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [activeTab, setActiveTab] = useState('chat');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setIsLoading(true);
-    setResponse(null);
+  const handleQueryCompleted = (result: QueryResponse) => {
+    setResponse(result);
+    setIsLoading(false);
     
-    try {
-      const result = await processQuery(query);
-      setResponse(result);
-      
-      // If we're in chat tab, auto-switch to workflow to show the process
-      if (activeTab === 'chat') {
-        setTimeout(() => setActiveTab('workflow'), 500);
-      }
-    } catch (error) {
-      console.error("Error processing query:", error);
-      toast.error("Failed to process your query. Please try again.");
-    } finally {
-      setIsLoading(false);
+    // If we're in chat tab, auto-switch to workflow to show the process
+    if (activeTab === 'chat') {
+      setTimeout(() => setActiveTab('workflow'), 500);
     }
   };
 
@@ -74,48 +57,9 @@ const DemoSection = () => {
               >
                 <Card>
                   <CardContent className="p-6">
-                    <form onSubmit={handleSubmit}>
-                      <div className="space-y-4">
-                        <Input
-                          placeholder="Ask me anything about AI workflows..."
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          className="text-lg"
-                          disabled={isLoading}
-                        />
-                        <Button 
-                          type="submit" 
-                          className="w-full" 
-                          disabled={isLoading || !query.trim()}
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <MessageSquare className="mr-2 h-4 w-4" />
-                              Send Query
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </form>
-
-                    {response && (
-                      <div className="mt-6">
-                        <h3 className="font-medium mb-2 flex items-center">
-                          <CircleCheck className="mr-2 h-4 w-4 text-green-500" />
-                          Response:
-                        </h3>
-                        <Textarea 
-                          value={response.answer} 
-                          readOnly 
-                          className="min-h-[200px] bg-muted/50"
-                        />
-                      </div>
-                    )}
+                    <ChatInterface 
+                      onQueryCompleted={handleQueryCompleted}
+                    />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -150,14 +94,9 @@ const DemoSection = () => {
                         cy="200" 
                         r="40" 
                         fill="hsl(var(--primary))" 
-                        opacity={response || !query ? "0.8" : "1"} 
+                        opacity={response ? "0.8" : "1"} 
                       />
                       <text x="100" y="200" textAnchor="middle" fill="white" dominantBaseline="middle">Input</text>
-                      {query && (
-                        <text x="100" y="240" textAnchor="middle" fill="white" dominantBaseline="middle" fontSize="10">
-                          {query.length > 20 ? query.substring(0, 20) + "..." : query}
-                        </text>
-                      )}
                     </g>
                     
                     {/* Arrows */}
@@ -262,14 +201,6 @@ const DemoSection = () => {
                       Submit a query to see how it flows through a multi-step LangGraph workflow.
                     </p>
                   )}
-                  
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setActiveTab('chat')}
-                  >
-                    Try Another Query
-                  </Button>
                 </div>
               </motion.div>
             </TabsContent>
