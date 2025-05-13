@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { setApiKeys } from '@/services/queryService';
 import { motion } from 'framer-motion';
+import { Key } from 'lucide-react';
 
 const ApiConfig = () => {
   const navigate = useNavigate();
@@ -82,15 +83,19 @@ const ApiConfig = () => {
             transition={{ duration: 0.5 }}
             className="max-w-lg mx-auto"
           >
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
+                <Key className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold mb-2">API Configuration</h1>
+              <p className="text-muted-foreground">
+                Enter your API keys to enable real-time data
+              </p>
+            </div>
+            
             <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">API Configuration</CardTitle>
-                <CardDescription>
-                  Configure your API keys to enable real-time data in the application.
-                </CardDescription>
-              </CardHeader>
               <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                   <FormItem>
                     <FormLabel htmlFor="weatherKey">Weather API Key (OpenWeatherMap)</FormLabel>
                     <FormControl>
@@ -99,6 +104,7 @@ const ApiConfig = () => {
                         placeholder="Enter your Weather API key"
                         value={weatherKey}
                         onChange={(e) => setWeatherKey(e.target.value)}
+                        className="font-mono text-sm"
                       />
                     </FormControl>
                     <FormDescription>
@@ -114,6 +120,7 @@ const ApiConfig = () => {
                         placeholder="Enter your Google API key"
                         value={googleKey}
                         onChange={(e) => setGoogleKey(e.target.value)}
+                        className="font-mono text-sm"
                       />
                     </FormControl>
                     <FormDescription>
@@ -129,6 +136,7 @@ const ApiConfig = () => {
                         placeholder="Enter your LangChain API key"
                         value={langChainKey}
                         onChange={(e) => setLangChainKey(e.target.value)}
+                        className="font-mono text-sm"
                       />
                     </FormControl>
                     <FormDescription>

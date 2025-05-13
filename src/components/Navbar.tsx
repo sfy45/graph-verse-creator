@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Github } from 'lucide-react';
+import { Menu, X, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Navbar = () => {
@@ -32,20 +32,14 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <div className="flex space-x-6">
-              <NavLink to="/features">Features</NavLink>
-              <NavLink to="/docs">Documentation</NavLink>
-              <NavLink to="/examples">Examples</NavLink>
-              <NavLink to="/pricing">Pricing</NavLink>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
+          <div className="hidden md:flex items-center space-x-6">
+            <NavLink to="/about">About</NavLink>
+            <Link to="/api-config">
+              <Button size="sm" variant="outline">
+                <Settings className="mr-2 h-4 w-4" />
+                API Settings
               </Button>
-              <Button size="sm">Sign In</Button>
-            </div>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -66,17 +60,8 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-background/95 backdrop-blur-md">
           <div className="container mx-auto px-4 py-4 space-y-4">
-            <MobileNavLink to="/features" onClick={() => setIsMenuOpen(false)}>Features</MobileNavLink>
-            <MobileNavLink to="/docs" onClick={() => setIsMenuOpen(false)}>Documentation</MobileNavLink>
-            <MobileNavLink to="/examples" onClick={() => setIsMenuOpen(false)}>Examples</MobileNavLink>
-            <MobileNavLink to="/pricing" onClick={() => setIsMenuOpen(false)}>Pricing</MobileNavLink>
-            <div className="pt-2 flex flex-col space-y-2">
-              <Button variant="outline" className="justify-start">
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
-              </Button>
-              <Button>Sign In</Button>
-            </div>
+            <MobileNavLink to="/about" onClick={() => setIsMenuOpen(false)}>About</MobileNavLink>
+            <MobileNavLink to="/api-config" onClick={() => setIsMenuOpen(false)}>API Settings</MobileNavLink>
           </div>
         </div>
       )}
