@@ -6,19 +6,32 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormDescription, FormItem, FormLabel } from '@/components/ui/form';
 import { setApiKeys } from '@/services/queryService';
 import { motion } from 'framer-motion';
 import { Key } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+
+interface ApiFormValues {
+  weatherKey: string;
+  googleKey: string;
+  langChainKey: string;
+}
 
 const ApiConfig = () => {
   const navigate = useNavigate();
-  const [weatherKey, setWeatherKey] = useState('');
-  const [googleKey, setGoogleKey] = useState('');
-  const [langChainKey, setLangChainKey] = useState('');
   const [isConfigured, setIsConfigured] = useState(false);
-
+  
+  // Set up react-hook-form
+  const form = useForm<ApiFormValues>({
+    defaultValues: {
+      weatherKey: '',
+      googleKey: '',
+      langChainKey: ''
+    }
+  });
+  
   useEffect(() => {
     document.title = "API Configuration - GenUI";
     
@@ -27,28 +40,26 @@ const ApiConfig = () => {
     const savedGoogleKey = localStorage.getItem('google_api_key');
     const savedLangChainKey = localStorage.getItem('langchain_api_key');
     
-    if (savedWeatherKey) setWeatherKey(savedWeatherKey);
-    if (savedGoogleKey) setGoogleKey(savedGoogleKey);
-    if (savedLangChainKey) setLangChainKey(savedLangChainKey);
+    if (savedWeatherKey) form.setValue('weatherKey', savedWeatherKey);
+    if (savedGoogleKey) form.setValue('googleKey', savedGoogleKey);
+    if (savedLangChainKey) form.setValue('langChainKey', savedLangChainKey);
     
     setIsConfigured(
       !!localStorage.getItem('api_configured') && 
       (!!savedWeatherKey || !!savedGoogleKey || !!savedLangChainKey)
     );
-  }, []);
+  }, [form]);
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const onSubmit = (data: ApiFormValues) => {
     // Save to localStorage (in a production app, these would be securely stored)
-    if (weatherKey) localStorage.setItem('weather_api_key', weatherKey);
-    if (googleKey) localStorage.setItem('google_api_key', googleKey);
-    if (langChainKey) localStorage.setItem('langchain_api_key', langChainKey);
+    if (data.weatherKey) localStorage.setItem('weather_api_key', data.weatherKey);
+    if (data.googleKey) localStorage.setItem('google_api_key', data.googleKey);
+    if (data.langChainKey) localStorage.setItem('langchain_api_key', data.langChainKey);
     
     localStorage.setItem('api_configured', 'true');
     
     // Set the API keys for use in the application
-    setApiKeys(weatherKey, googleKey, langChainKey);
+    setApiKeys(data.weatherKey, data.googleKey, data.langChainKey);
     
     setIsConfigured(true);
     toast.success("API keys saved successfully");
@@ -63,9 +74,12 @@ const ApiConfig = () => {
     localStorage.removeItem('langchain_api_key');
     localStorage.removeItem('api_configured');
     
-    setWeatherKey('');
-    setGoogleKey('');
-    setLangChainKey('');
+    form.reset({
+      weatherKey: '',
+      googleKey: '',
+      langChainKey: ''
+    });
+    
     setIsConfigured(false);
     
     setApiKeys('', '', '');
@@ -94,69 +108,68 @@ const ApiConfig = () => {
             </div>
             
             <Card>
-              <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4 pt-6">
-                  <FormItem>
-                    <FormLabel htmlFor="weatherKey">Weather API Key (OpenWeatherMap)</FormLabel>
-                    <FormControl>
-                      <Input
-                        id="weatherKey"
-                        placeholder="Enter your Weather API key"
-                        value={weatherKey}
-                        onChange={(e) => setWeatherKey(e.target.value)}
-                        className="font-mono text-sm"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Required for real-time weather data queries.
-                    </FormDescription>
-                  </FormItem>
-                  
-                  <FormItem>
-                    <FormLabel htmlFor="googleKey">Google API Key</FormLabel>
-                    <FormControl>
-                      <Input
-                        id="googleKey"
-                        placeholder="Enter your Google API key"
-                        value={googleKey}
-                        onChange={(e) => setGoogleKey(e.target.value)}
-                        className="font-mono text-sm"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Used for location and search functionality.
-                    </FormDescription>
-                  </FormItem>
-                  
-                  <FormItem>
-                    <FormLabel htmlFor="langChainKey">LangChain/LangGraph API Key</FormLabel>
-                    <FormControl>
-                      <Input
-                        id="langChainKey"
-                        placeholder="Enter your LangChain API key"
-                        value={langChainKey}
-                        onChange={(e) => setLangChainKey(e.target.value)}
-                        className="font-mono text-sm"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Required for AI-powered responses and workflows.
-                    </FormDescription>
-                  </FormItem>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    type="button"
-                    onClick={clearConfiguration}
-                  >
-                    Clear Configuration
-                  </Button>
-                  <Button type="submit">
-                    {isConfigured ? "Update Keys" : "Save Keys"}
-                  </Button>
-                </CardFooter>
-              </form>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                  <CardContent className="space-y-4 pt-6">
+                    <FormItem>
+                      <FormLabel htmlFor="weatherKey">Weather API Key (OpenWeatherMap)</FormLabel>
+                      <FormControl>
+                        <Input
+                          id="weatherKey"
+                          placeholder="Enter your Weather API key"
+                          {...form.register('weatherKey')}
+                          className="font-mono text-sm"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Required for real-time weather data queries.
+                      </FormDescription>
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="googleKey">Google API Key</FormLabel>
+                      <FormControl>
+                        <Input
+                          id="googleKey"
+                          placeholder="Enter your Google API key"
+                          {...form.register('googleKey')}
+                          className="font-mono text-sm"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Used for location and search functionality.
+                      </FormDescription>
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="langChainKey">LangChain/LangGraph API Key</FormLabel>
+                      <FormControl>
+                        <Input
+                          id="langChainKey"
+                          placeholder="Enter your LangChain API key"
+                          {...form.register('langChainKey')}
+                          className="font-mono text-sm"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Required for AI-powered responses and workflows.
+                      </FormDescription>
+                    </FormItem>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button 
+                      variant="outline" 
+                      type="button"
+                      onClick={clearConfiguration}
+                    >
+                      Clear Configuration
+                    </Button>
+                    <Button type="submit">
+                      {isConfigured ? "Update Keys" : "Save Keys"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Form>
             </Card>
             
             {isConfigured && (
